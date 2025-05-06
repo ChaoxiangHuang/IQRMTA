@@ -8,7 +8,7 @@ import re
 from openai import OpenAI
 
 # --- Configuration ---
-JSON_FILE = "/home/ubuntu/iqrm_chapter_summaries.json"
+JSON_FILE = "iqrm_chapter_summaries.json"
 API_KEY = "sk-e5UCdVT-knC7iEtrKwccstG3yZrf_i-hrKJ4dv-QpsT3BlbkFJr8PMyVYX7MJ7XipoyCL8HbAtYrbikPRvaioYVwkakA"
 
 # --- OpenAI Client ---
