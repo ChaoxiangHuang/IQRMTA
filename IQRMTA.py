@@ -71,7 +71,7 @@ Answer:
 # --- URL Parameter Handling with Debugging ---
 def get_topic_from_url(kb):
     # grab the first (or only) "info" value, or None if it's missing
-    info_param = st.query_params().get("info", [None])[0]
+    info_param = st.query_params.get("info", [None])[0]
 
     # DEBUG: print into the sidebar so you can see exactly what came through
     st.sidebar.markdown(f"🔍 raw info‑param: `{info_param}` (type={type(info_param).__name__})")
