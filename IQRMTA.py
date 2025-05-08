@@ -70,42 +70,42 @@ Answer:
 
 # --- URL Parameter Handling with Debugging ---
 def get_topic_from_url(kb):
-    params = st.experimental_get_query_params()
-    raw_info = params.get("info")
-    if raw_info:
-        info_param = raw_info[0] if isinstance(raw_info, (list, tuple)) else raw_info
-    else:
-        info_param = None
+    # grab the first (or only) "info" value, or None if it's missing
+    info_param = st.experimental_get_query_params().get("info", [None])[0]
 
-    target_chapter_key = None
-    target_topic_name  = None
-    error_message      = None
+    # DEBUG: print into the sidebar so you can see exactly what came through
+    st.sidebar.markdown(f"🔍 raw info‑param: `{info_param}` (type={type(info_param).__name__})")
+
+    target_chapter = None
+    target_topic   = None
+    error_message  = None
 
     if info_param:
+        # accept either "chapter1-Name" or "chapter1_Name"
         m = re.match(r"chapter(\d+)[-_](.+)", info_param, re.IGNORECASE)
         if m:
-            chap_num   = m.group(1)
-            raw_topic  = m.group(2)
-            topic_slug = raw_topic.replace("-", " ").replace("_", " ")
-            chap_key   = f"chapter_{chap_num}"
+            chap_no   = m.group(1)
+            slug      = m.group(2).replace("_", " ").replace("-", " ")
+            chap_key  = f"chapter_{chap_no}"
 
             if kb and chap_key in kb:
+                # find exact topic name (case‑insensitive match)
                 for t in kb[chap_key]:
-                    if t.lower() == topic_slug.lower():
-                        target_chapter_key = chap_key
-                        target_topic_name  = t
+                    if t.lower() == slug.lower():
+                        target_chapter = chap_key
+                        target_topic   = t
                         break
-                if not target_topic_name:
-                    error_message = f"Topic '{topic_slug}' not found in Chapter {chap_num}."
+                if not target_topic:
+                    error_message = f"Topic '{slug}' not found in Chapter {chap_no}."
             else:
-                error_message = f"Chapter {chap_num} not found in the knowledge base."
+                error_message = f"Chapter {chap_no} not found."
         else:
             error_message = (
-                f"Invalid 'info' parameter format: '{info_param}'. "
-                "Expected format: chapter<Number>-<TopicName> (or underscore)."
+                f"Invalid format: '{info_param}'. "
+                "Use chapter<Number>-<TopicName> or chapter<Number>_<TopicName>."
             )
 
-    return target_chapter_key, target_topic_name, error_message
+    return target_chapter, target_topic, error_message
 
 # --- Initialize Session State (Good as is) ---
 if "messages" not in st.session_state:
