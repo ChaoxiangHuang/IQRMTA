@@ -269,6 +269,4 @@ if selected_chapter_key and selected_topic_name:
 else:
     st.info("Please select a chapter and topic from the sidebar to view content and chat.")
 
-# --- Footer or other elements ---
-# st.sidebar.info("Developed by Manus AI")
 
