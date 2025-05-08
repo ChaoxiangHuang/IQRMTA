@@ -70,59 +70,41 @@ Answer:
 
 # --- URL Parameter Handling with Debugging ---
 def get_topic_from_url(kb):
-    params = st.query_params
-    # --- START DEBUGGING ---
-    # This will print to your terminal/logs and also show in the app's sidebar
-    print(f"DEBUG: Raw st.query_params: {dict(params)}")
-    st.sidebar.expander("URL Debug Info", expanded=False).json({"raw_query_params": dict(params)})
-    # --- END DEBUGGING ---
-
-    info_param_list = params.get("info") # Returns a list or None
-    info_param = None
-    if info_param_list:
-        info_param = info_param_list[0] # Get the first value if "info" param exists
-
-    # --- START DEBUGGING ---
-    print(f"DEBUG: Parsed 'info_param' from URL: '{info_param}'")
-    st.sidebar.expander("URL Debug Info", expanded=False).write(f"Parsed 'info' parameter value: `{info_param}`")
-    # --- END DEBUGGING ---
+    params = st.experimental_get_query_params()
+    raw_info = params.get("info")
+    if raw_info:
+        info_param = raw_info[0] if isinstance(raw_info, (list, tuple)) else raw_info
+    else:
+        info_param = None
 
     target_chapter_key = None
-    target_topic_name = None
-    error_message = None
+    target_topic_name  = None
+    error_message      = None
 
     if info_param:
-        match = re.match(r"chapter(\d+)-(.+)", info_param, re.IGNORECASE)
-        if match:
-            chapter_num_str = match.group(1)
-            topic_name_url = match.group(2).replace("-", " ")
-            potential_chapter_key = f"chapter_{chapter_num_str}"
+        m = re.match(r"chapter(\d+)[-_](.+)", info_param, re.IGNORECASE)
+        if m:
+            chap_num   = m.group(1)
+            raw_topic  = m.group(2)
+            topic_slug = raw_topic.replace("-", " ").replace("_", " ")
+            chap_key   = f"chapter_{chap_num}"
 
-            if kb and potential_chapter_key in kb:
-                chapter_data = kb[potential_chapter_key]
-                found_topic_key = None
-                for actual_topic_key in chapter_data:
-                    if actual_topic_key.lower() == topic_name_url.lower():
-                        found_topic_key = actual_topic_key
+            if kb and chap_key in kb:
+                for t in kb[chap_key]:
+                    if t.lower() == topic_slug.lower():
+                        target_chapter_key = chap_key
+                        target_topic_name  = t
                         break
-                if found_topic_key:
-                    target_chapter_key = potential_chapter_key
-                    target_topic_name = found_topic_key
-                else:
-                    error_message = f"Topic '{topic_name_url}' not found in Chapter {chapter_num_str}."
+                if not target_topic_name:
+                    error_message = f"Topic '{topic_slug}' not found in Chapter {chap_num}."
             else:
-                error_message = f"Chapter {chapter_num_str} (key: {potential_chapter_key}) not found in the knowledge base."
+                error_message = f"Chapter {chap_num} not found in the knowledge base."
         else:
-            # This is where your current error "Invalid 'info' parameter format: 'c'" originates
-            error_message = f"Invalid 'info' parameter format: '{info_param}'. Expected format: chapter<number>-<TopicName>."
-    # --- START DEBUGGING ---
-    print(f"DEBUG: get_topic_from_url results: chapter='{target_chapter_key}', topic='{target_topic_name}', error='{error_message}'")
-    st.sidebar.expander("URL Debug Info", expanded=False).json({
-        "url_target_chapter": target_chapter_key,
-        "url_target_topic": target_topic_name,
-        "url_parse_error": error_message
-    })
-    # --- END DEBUGGING ---
+            error_message = (
+                f"Invalid 'info' parameter format: '{info_param}'. "
+                "Expected format: chapter<Number>-<TopicName> (or underscore)."
+            )
+
     return target_chapter_key, target_topic_name, error_message
 
 # --- Initialize Session State (Good as is) ---
