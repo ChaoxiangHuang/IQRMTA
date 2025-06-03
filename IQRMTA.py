@@ -68,67 +68,67 @@ Answer:
     except Exception as e:
         return f"Error calling OpenAI API: {e}"
 
-# --- URL Parameter Handling with Debugging ---
+# --- URL Parameter Handling with Pinpoint Debugging ---
 def get_topic_from_url(kb):
-    # st.query_params is a special dict-like object.
-    # .get("info") gets the first value.
-    # .get_all("info") gets all values as a list.
-    
-    all_info_values = st.query_params.get_all("info") # Get all values for "info"
-    first_info_value = st.query_params.get("info")   # Get the first value for "info"
+    # These lines are from your confirmed successful debug output
+    all_info_values = st.query_params.get_all("info")
+    first_info_value = st.query_params.get("info") # Your debug showed this is "chapter1_Array_Calculations"
 
-    st.sidebar.markdown("--- DEBUG START: get_topic_from_url ---")
-    st.sidebar.write("`st.query_params` (raw object):")
-    st.sidebar.text(str(st.query_params)) # See the string representation of the object
-    st.sidebar.write("`st.query_params.get_all('info')` (all values for 'info'):")
-    st.sidebar.json(all_info_values) # Display as JSON list
-    st.sidebar.write(f"`st.query_params.get('info')` (first value for 'info'): `{first_info_value}`")
-    st.sidebar.markdown("--- DEBUG END ---")
+    # --- Display confirmed values ---
+    st.sidebar.markdown("--- DEBUG (get_topic_from_url) ---")
+    st.sidebar.write("`st.query_params.get_all('info')`:")
+    st.sidebar.json(all_info_values)
+    st.sidebar.write(f"`st.query_params.get('info')` (this will be used as `param_to_process`): `{first_info_value}`")
+    # --- End Display ---
 
-    info_param = first_info_value # This is what your original code effectively did: st.query_params.get("info", [None])[0]
-                                  # If first_info_value is None (because "info" key doesn't exist), 
-                                  # then the original [None])[0] would take None from that list.
-                                  # So, this simplification is equivalent if "info" exists.
-                                  # If "info" does not exist, params.get("info") is None, params.get_all("info") is [].
-                                  # Your original: info_param = st.query_params.get("info", [None])[0] is robust for non-existence.
-                                  # Let's keep it for now if that's preferred, but focus on what get_all returns.
-
-    # For robustness, let's use your original line if we need to handle the case where "info" doesn't exist at all
-    # and you want info_param to be None in that specific way.
-    # However, the current issue is that "info" *does* exist, but its first value is 'c'.
-    info_param_to_process = st.query_params.get("info", [None])[0]
-    # We already know info_param_to_process is 'c' from your previous debug.
-    # The key is to see if all_info_values contains more.
+    param_to_process = first_info_value # Use the variable we just confirmed
 
     target_chapter = None
     target_topic   = None
     error_message  = None
 
-    # We will use info_param_to_process which we know becomes 'c'
-    if info_param_to_process:
-        m = re.match(r"chapter(\d+)[-_](.+)", info_param_to_process, re.IGNORECASE)
+    if param_to_process:
+        # --- PINPOINT DEBUG BEFORE REGEX ---
+        st.sidebar.write(f"**Just before `re.match`, `param_to_process` is:** `{param_to_process}` (Type: {type(param_to_process).__name__})")
+        print(f"TERMINAL DEBUG - Just before `re.match`, `param_to_process` is: '{param_to_process}'")
+        # --- END PINPOINT DEBUG ---
+
+        m = re.match(r"chapter(\d+)[-_](.+)", param_to_process, re.IGNORECASE)
         if m:
+            st.sidebar.write("✅ Regex Matched!")
+            print("TERMINAL DEBUG - Regex Matched!")
             chap_no   = m.group(1)
             url_topic_segment = m.group(2)
             slug_for_matching = url_topic_segment.replace("_", " ").replace("-", " ")
             chap_key  = f"chapter_{chap_no}"
 
             if kb and chap_key in kb:
-                for t in kb[chap_key]:
-                    if t.lower() == slug_for_matching.lower():
+                for t_key_in_kb in kb[chap_key]:
+                    if t_key_in_kb.lower() == slug_for_matching.lower():
                         target_chapter = chap_key
-                        target_topic   = t
+                        target_topic   = t_key_in_kb
                         break
                 if not target_topic:
-                    error_message = f"Topic '{slug_for_matching}' (from URL segment '{url_topic_segment}') not found in Chapter {chap_no}."
+                    error_message = f"Topic '{slug_for_matching}' (from URL '{url_topic_segment}') not found in Chapter {chap_no}."
             else:
                 error_message = f"Chapter {chap_no} (key '{chap_key}') not found."
         else:
+            # --- PINPOINT DEBUG INSIDE REGEX FAILURE (ELSE BLOCK) ---
+            st.sidebar.write(f"❌ Regex FAILED. **Inside `else` block, `param_to_process` is:** `{param_to_process}`")
+            print(f"TERMINAL DEBUG - Regex FAILED. Inside `else` block, `param_to_process` is: '{param_to_process}'")
+            # --- END PINPOINT DEBUG ---
             error_message = (
-                f"Invalid format: '{info_param_to_process}'. "
+                f"Invalid format: '{param_to_process}'. " # Error uses the same variable
                 "Use chapter<Number>-<TopicName> or chapter<Number>_<TopicName>."
             )
-    # ... (rest of the function remains the same)
+    else:
+        st.sidebar.write("`param_to_process` was None or empty (no 'info' QParam).")
+        print("TERMINAL DEBUG - `param_to_process` was None or empty.")
+
+
+    st.sidebar.write(f"Returning: chapter=`{target_chapter}`, topic=`{target_topic}`, error=`{error_message}`")
+    st.sidebar.markdown("--- END DEBUG ---")
+    print(f"TERMINAL DEBUG - Returning: chapter={target_chapter}, topic={target_topic}, error={error_message}")
     return target_chapter, target_topic, error_message
 
 # --- Initialize Session State (Good as is) ---
