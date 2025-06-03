@@ -70,41 +70,65 @@ Answer:
 
 # --- URL Parameter Handling with Debugging ---
 def get_topic_from_url(kb):
-    # grab the first (or only) "info" value, or None if it's missing
-    info_param = st.query_params.get("info", [None])[0]
+    # st.query_params is a special dict-like object.
+    # .get("info") gets the first value.
+    # .get_all("info") gets all values as a list.
+    
+    all_info_values = st.query_params.get_all("info") # Get all values for "info"
+    first_info_value = st.query_params.get("info")   # Get the first value for "info"
 
-    # DEBUG: print into the sidebar so you can see exactly what came through
-    st.sidebar.markdown(f"🔍 raw info‑param: `{info_param}` (type={type(info_param).__name__})")
+    st.sidebar.markdown("--- DEBUG START: get_topic_from_url ---")
+    st.sidebar.write("`st.query_params` (raw object):")
+    st.sidebar.text(str(st.query_params)) # See the string representation of the object
+    st.sidebar.write("`st.query_params.get_all('info')` (all values for 'info'):")
+    st.sidebar.json(all_info_values) # Display as JSON list
+    st.sidebar.write(f"`st.query_params.get('info')` (first value for 'info'): `{first_info_value}`")
+    st.sidebar.markdown("--- DEBUG END ---")
+
+    info_param = first_info_value # This is what your original code effectively did: st.query_params.get("info", [None])[0]
+                                  # If first_info_value is None (because "info" key doesn't exist), 
+                                  # then the original [None])[0] would take None from that list.
+                                  # So, this simplification is equivalent if "info" exists.
+                                  # If "info" does not exist, params.get("info") is None, params.get_all("info") is [].
+                                  # Your original: info_param = st.query_params.get("info", [None])[0] is robust for non-existence.
+                                  # Let's keep it for now if that's preferred, but focus on what get_all returns.
+
+    # For robustness, let's use your original line if we need to handle the case where "info" doesn't exist at all
+    # and you want info_param to be None in that specific way.
+    # However, the current issue is that "info" *does* exist, but its first value is 'c'.
+    info_param_to_process = st.query_params.get("info", [None])[0]
+    # We already know info_param_to_process is 'c' from your previous debug.
+    # The key is to see if all_info_values contains more.
 
     target_chapter = None
     target_topic   = None
     error_message  = None
 
-    if info_param:
-        # accept either "chapter1-Name" or "chapter1_Name"
-        m = re.match(r"chapter(\d+)[-_](.+)", info_param, re.IGNORECASE)
+    # We will use info_param_to_process which we know becomes 'c'
+    if info_param_to_process:
+        m = re.match(r"chapter(\d+)[-_](.+)", info_param_to_process, re.IGNORECASE)
         if m:
             chap_no   = m.group(1)
-            slug      = m.group(2).replace("_", " ").replace("-", " ")
+            url_topic_segment = m.group(2)
+            slug_for_matching = url_topic_segment.replace("_", " ").replace("-", " ")
             chap_key  = f"chapter_{chap_no}"
 
             if kb and chap_key in kb:
-                # find exact topic name (case‑insensitive match)
                 for t in kb[chap_key]:
-                    if t.lower() == slug.lower():
+                    if t.lower() == slug_for_matching.lower():
                         target_chapter = chap_key
                         target_topic   = t
                         break
                 if not target_topic:
-                    error_message = f"Topic '{slug}' not found in Chapter {chap_no}."
+                    error_message = f"Topic '{slug_for_matching}' (from URL segment '{url_topic_segment}') not found in Chapter {chap_no}."
             else:
-                error_message = f"Chapter {chap_no} not found."
+                error_message = f"Chapter {chap_no} (key '{chap_key}') not found."
         else:
             error_message = (
-                f"Invalid format: '{info_param}'. "
+                f"Invalid format: '{info_param_to_process}'. "
                 "Use chapter<Number>-<TopicName> or chapter<Number>_<TopicName>."
             )
-
+    # ... (rest of the function remains the same)
     return target_chapter, target_topic, error_message
 
 # --- Initialize Session State (Good as is) ---
