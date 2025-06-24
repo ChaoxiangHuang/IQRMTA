@@ -311,8 +311,4 @@ if selected_chapter_key and selected_topic_name:
 else:
     st.info("Please select a chapter and topic from the sidebar to view content and chat.")
 
-# To reset the URL processed flag if user navigates away and back via URL (optional, advanced)
-# This is tricky as reruns happen often. A simple flag might not be enough for complex state.
-# if not (url_target_chapter_key == selected_chapter_key and url_target_topic_name == selected_topic_name):
-#    if "_url_params_processed" in st.session_state:
-#        del st.session_state._url_params_processed
+
